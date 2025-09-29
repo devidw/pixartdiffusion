@@ -7,7 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(ncnn REQUIRED)
 
 add_executable(pixart_vulkan main.cpp)
-target_link_libraries(pixart_vulkan PRIVATE ncnn::ncnn)
+if (TARGET ncnn::ncnn)
+  target_link_libraries(pixart_vulkan PRIVATE ncnn::ncnn)
+else()
+  # Some ncnn packages export target as plain `ncnn`
+  target_link_libraries(pixart_vulkan PRIVATE ncnn)
+endif()
 
 if(APPLE)
   target_compile_options(pixart_vulkan PRIVATE -stdlib=libc++)
