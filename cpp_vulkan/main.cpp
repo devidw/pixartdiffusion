@@ -23,7 +23,7 @@ struct NoopLayer : public ncnn::Layer {
 	}
 };
 
-static ncnn::Layer* NoopLayer_creator() { return new NoopLayer(); }
+static ncnn::Layer* NoopLayer_creator(void*) { return new NoopLayer(); }
 
 
 // Match Python beta schedule
@@ -138,8 +138,19 @@ int main(int argc, char** argv)
 	net.opt.use_fp16_arithmetic = 0; // stability
 
 	// Register potential leftover ops as no-ops before parsing params
-	net.register_custom_layer("Tensor.to", NoopLayer_creator);
-	net.register_custom_layer("Tensor.to_11", NoopLayer_creator);
+	const char* noop_ops[] = {
+		"Tensor.to",
+		"Tensor.to_11",
+		"Tensor.to_12",
+		"Tensor.to_13",
+		"aten::to",
+		"to"
+	};
+	for (const char* name : noop_ops)
+	{
+		net.register_custom_layer(name, NoopLayer_creator);
+	}
+	std::cout << "Registered Tensor.to no-op handlers" << std::endl;
 
 	if (net.load_param(param_path)) { std::cerr << "Failed to load param" << std::endl; return -1; }
 	if (net.load_model(bin_path)) { std::cerr << "Failed to load bin" << std::endl; return -1; }
