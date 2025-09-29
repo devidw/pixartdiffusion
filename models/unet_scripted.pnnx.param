@@ -1,0 +1,86 @@
+7767517
+84 83
+pnnx.Input               pnnx_input_0             0 1 0 #0=(1,3,32,32)f32
+pnnx.Input               pnnx_input_1             0 1 1 #1=(1)i64
+pnnx.Attribute           pnnx_fold_pe.1_1         0 1 2 @data=(1,30)f32 #2=(1,30)f32
+Tensor.clone             Tensor.copy_8_ncnnclone  1 1 2 3 #2=(1,30)f32 #3=(1,30)f32
+pnnx.Attribute           pnnx_fold_div_term.1     0 1 4 @data=(15)f32 #4=(15)f32
+pnnx.Attribute           pnnx_fold_div_term.1_1   0 1 5 @data=(15)f32 #5=(15)f32
+torch.unsqueeze          torch.unsqueeze_18       1 1 1 6 dim=1 $input=1 #1=(1)i64 #6=(1,1)i64
+Tensor.to                Tensor.to_13             1 1 6 7 copy=False dtype=torch.float $input=6 #6=(1,1)i64 #7=(1,1)f32
+pnnx.Expression          pnnx_expr_89             2 1 7 4 8 expr=sin(mul(@0,@1)) #7=(1,1)f32 #4=(15)f32 #8=(1,15)f32
+Tensor.slice_copy        Tensor.copy_8            2 1 3 8 9 dim=1 end=2147483647 start=0 step=2 $self=3 $src=8 #3=(1,30)f32 #8=(1,15)f32 #9=(1,30)f32
+Tensor.clone             Tensor.copy_9_ncnnclone  1 1 9 10 #9=(1,30)f32 #10=(1,30)f32
+pnnx.Expression          pnnx_expr_81             2 1 7 5 11 expr=cos(mul(@0,@1)) #7=(1,1)f32 #5=(15)f32 #11=(1,15)f32
+Tensor.slice_copy        Tensor.copy_9            2 1 10 11 12 dim=1 end=2147483647 start=1 step=2 $self=10 $src=11 #10=(1,30)f32 #11=(1,15)f32 #12=(1,30)f32
+nn.Conv2d                image_to                 1 1 0 13 bias=True dilation=(1,1) groups=1 in_channels=3 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,3,3,3)f32 #0=(1,3,32,32)f32 #13=(1,64,32,32)f32
+nn.Linear                enc.0.temb_to_ch         1 1 12 14 bias=True in_features=30 out_features=64 @bias=(64)f32 @weight=(64,30)f32 #12=(1,30)f32 #14=(1,64)f32
+nn.Conv2d                enc.0.conv1              1 1 13 15 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,64,3,3)f32 #13=(1,64,32,32)f32 #15=(1,64,32,32)f32
+nn.ReLU                  enc.0.act                1 1 15 16 #15=(1,64,32,32)f32 #16=(1,64,32,32)f32
+Tensor.reshape           torch.unsqueeze_20       1 1 14 17 shape=(1,64,1,1) $input=14 #14=(1,64)f32 #17=(1,64,1,1)f32
+pnnx.Expression          pnnx_expr_62             2 1 16 17 18 expr=add(@0,@1) #16=(1,64,32,32)f32 #17=(1,64,1,1)f32 #18=(1,64,32,32)f32
+nn.Conv2d                enc.0.conv2              1 1 18 19 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,64,3,3)f32 #18=(1,64,32,32)f32 #19=(1,64,32,32)f32
+nn.ReLU                  pnnx_unique_0            1 1 19 20 #19=(1,64,32,32)f32 #20=(1,64,32,32)f32
+nn.Conv2d                enc.0.conv3              1 1 20 21 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,64,3,3)f32 #20=(1,64,32,32)f32 #21=(1,64,32,32)f32
+nn.ReLU                  pnnx_unique_1            1 1 21 22 #21=(1,64,32,32)f32 #22=(1,64,32,32)f32
+pnnx.Expression          pnnx_expr_60             2 1 22 13 23 expr=add(@0,@1) #22=(1,64,32,32)f32 #13=(1,64,32,32)f32 #23=(1,64,32,32)f32
+torch.clone              torch.clone_5            1 1 23 24 $input=23 #23=(1,64,32,32)f32 #24=(1,64,32,32)f32
+nn.Conv2d                downsamplers.0           1 1 23 25 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(2,2) out_channels=128 padding=(0,0) padding_mode=zeros stride=(2,2) @bias=(128)f32 @weight=(128,64,2,2)f32 #23=(1,64,32,32)f32 #25=(1,128,16,16)f32
+nn.Linear                enc.1.temb_to_ch         1 1 12 26 bias=True in_features=30 out_features=128 @bias=(128)f32 @weight=(128,30)f32 #12=(1,30)f32 #26=(1,128)f32
+nn.Conv2d                enc.1.conv1              1 1 25 27 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(3,3) out_channels=128 padding=same padding_mode=zeros stride=(1,1) @bias=(128)f32 @weight=(128,128,3,3)f32 #25=(1,128,16,16)f32 #27=(1,128,16,16)f32
+nn.ReLU                  enc.1.act                1 1 27 28 #27=(1,128,16,16)f32 #28=(1,128,16,16)f32
+Tensor.reshape           torch.unsqueeze_22       1 1 26 29 shape=(1,128,1,1) $input=26 #26=(1,128)f32 #29=(1,128,1,1)f32
+pnnx.Expression          pnnx_expr_50             2 1 28 29 30 expr=add(@0,@1) #28=(1,128,16,16)f32 #29=(1,128,1,1)f32 #30=(1,128,16,16)f32
+nn.Conv2d                enc.1.conv2              1 1 30 31 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(3,3) out_channels=128 padding=same padding_mode=zeros stride=(1,1) @bias=(128)f32 @weight=(128,128,3,3)f32 #30=(1,128,16,16)f32 #31=(1,128,16,16)f32
+nn.ReLU                  pnnx_unique_2            1 1 31 32 #31=(1,128,16,16)f32 #32=(1,128,16,16)f32
+nn.Conv2d                enc.1.conv3              1 1 32 33 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(3,3) out_channels=128 padding=same padding_mode=zeros stride=(1,1) @bias=(128)f32 @weight=(128,128,3,3)f32 #32=(1,128,16,16)f32 #33=(1,128,16,16)f32
+nn.ReLU                  pnnx_unique_3            1 1 33 34 #33=(1,128,16,16)f32 #34=(1,128,16,16)f32
+pnnx.Expression          pnnx_expr_48             2 1 34 25 35 expr=add(@0,@1) #34=(1,128,16,16)f32 #25=(1,128,16,16)f32 #35=(1,128,16,16)f32
+torch.clone              torch.clone_6            1 1 35 36 $input=35 #35=(1,128,16,16)f32 #36=(1,128,16,16)f32
+nn.Conv2d                downsamplers.1           1 1 35 37 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(2,2) out_channels=256 padding=(0,0) padding_mode=zeros stride=(2,2) @bias=(256)f32 @weight=(256,128,2,2)f32 #35=(1,128,16,16)f32 #37=(1,256,8,8)f32
+nn.Linear                enc.2.temb_to_ch         1 1 12 38 bias=True in_features=30 out_features=256 @bias=(256)f32 @weight=(256,30)f32 #12=(1,30)f32 #38=(1,256)f32
+nn.Conv2d                enc.2.conv1              1 1 37 39 bias=True dilation=(1,1) groups=1 in_channels=256 kernel_size=(3,3) out_channels=256 padding=same padding_mode=zeros stride=(1,1) @bias=(256)f32 @weight=(256,256,3,3)f32 #37=(1,256,8,8)f32 #39=(1,256,8,8)f32
+nn.ReLU                  enc.2.act                1 1 39 40 #39=(1,256,8,8)f32 #40=(1,256,8,8)f32
+Tensor.reshape           torch.unsqueeze_24       1 1 38 41 shape=(1,256,1,1) $input=38 #38=(1,256)f32 #41=(1,256,1,1)f32
+pnnx.Expression          pnnx_expr_38             2 1 40 41 42 expr=add(@0,@1) #40=(1,256,8,8)f32 #41=(1,256,1,1)f32 #42=(1,256,8,8)f32
+nn.Conv2d                enc.2.conv2              1 1 42 43 bias=True dilation=(1,1) groups=1 in_channels=256 kernel_size=(3,3) out_channels=256 padding=same padding_mode=zeros stride=(1,1) @bias=(256)f32 @weight=(256,256,3,3)f32 #42=(1,256,8,8)f32 #43=(1,256,8,8)f32
+nn.ReLU                  pnnx_unique_4            1 1 43 44 #43=(1,256,8,8)f32 #44=(1,256,8,8)f32
+nn.Conv2d                enc.2.conv3              1 1 44 45 bias=True dilation=(1,1) groups=1 in_channels=256 kernel_size=(3,3) out_channels=256 padding=same padding_mode=zeros stride=(1,1) @bias=(256)f32 @weight=(256,256,3,3)f32 #44=(1,256,8,8)f32 #45=(1,256,8,8)f32
+nn.ReLU                  pnnx_unique_5            1 1 45 46 #45=(1,256,8,8)f32 #46=(1,256,8,8)f32
+pnnx.Expression          pnnx_expr_36             2 1 46 37 47 expr=add(@0,@1) #46=(1,256,8,8)f32 #37=(1,256,8,8)f32 #47=(1,256,8,8)f32
+torch.flatten            torch.flatten_17         1 1 47 48 end_dim=-1 start_dim=2 $input=47 #47=(1,256,8,8)f32 #48=(1,256,64)f32
+Tensor.permute           Tensor.permute_10        1 1 48 49 dims=(0,2,1) $input=48 #48=(1,256,64)f32 #49=(1,64,256)f32
+nn.Linear                to_query                 1 1 49 50 bias=True in_features=256 out_features=256 @bias=(256)f32 @weight=(256,256)f32 #49=(1,64,256)f32 #50=(1,64,256)f32
+nn.Linear                to_key                   1 1 49 51 bias=True in_features=256 out_features=256 @bias=(256)f32 @weight=(256,256)f32 #49=(1,64,256)f32 #51=(1,64,256)f32
+nn.Linear                to_value                 1 1 49 52 bias=True in_features=256 out_features=256 @bias=(256)f32 @weight=(256,256)f32 #49=(1,64,256)f32 #52=(1,64,256)f32
+nn.MultiheadAttention    attention                3 1 50 51 52 53 add_bias_kv=False add_zero_attn=False batch_first=True bias=True embed_dim=256 kdim=256 num_heads=1 vdim=256 @in_proj_bias=(768)f32 @in_proj_weight=(768,256)f32 @out_proj.bias=(256)f32 @out_proj.weight=(256,256)f32 #50=(1,64,256)f32 #51=(1,64,256)f32 #52=(1,64,256)f32 #53=(1,64,256)f32
+nn.Linear                out_proj                 1 1 53 54 bias=True in_features=256 out_features=256 @bias=(256)f32 @weight=(256,256)f32 #53=(1,64,256)f32 #54=(1,64,256)f32
+Tensor.permute           Tensor.permute_11        1 1 54 55 dims=(0,2,1) $input=54 #54=(1,64,256)f32 #55=(1,256,64)f32
+Tensor.reshape           Tensor.reshape_12        1 1 55 56 shape=(1,256,8,8) $input=55 #55=(1,256,64)f32 #56=(1,256,8,8)f32
+pnnx.Expression          pnnx_expr_26             2 1 47 56 57 expr=add(@0,@1) #47=(1,256,8,8)f32 #56=(1,256,8,8)f32 #57=(1,256,8,8)f32
+nn.ConvTranspose2d       upsamplers.0             1 1 57 58 bias=True dilation=(1,1) groups=1 in_channels=256 kernel_size=(2,2) out_channels=128 output_padding=(0,0) padding=(0,0) stride=(2,2) @bias=(128)f32 @weight=(256,128,2,2)f32 #57=(1,256,8,8)f32 #58=(1,128,16,16)f32
+torch.cat                torch.cat_15             2 1 58 36 59 dim=1 #58=(1,128,16,16)f32 #36=(1,128,16,16)f32 #59=(1,256,16,16)f32
+nn.Linear                dec.0.temb_to_ch         1 1 12 60 bias=True in_features=30 out_features=128 @bias=(128)f32 @weight=(128,30)f32 #12=(1,30)f32 #60=(1,128)f32
+nn.Conv2d                dec.0.conv1              1 1 59 61 bias=True dilation=(1,1) groups=1 in_channels=256 kernel_size=(3,3) out_channels=128 padding=same padding_mode=zeros stride=(1,1) @bias=(128)f32 @weight=(128,256,3,3)f32 #59=(1,256,16,16)f32 #61=(1,128,16,16)f32
+nn.ReLU                  dec.0.act                1 1 61 62 #61=(1,128,16,16)f32 #62=(1,128,16,16)f32
+Tensor.reshape           torch.unsqueeze_26       1 1 60 63 shape=(1,128,1,1) $input=60 #60=(1,128)f32 #63=(1,128,1,1)f32
+pnnx.Expression          pnnx_expr_15             2 1 62 63 64 expr=add(@0,@1) #62=(1,128,16,16)f32 #63=(1,128,1,1)f32 #64=(1,128,16,16)f32
+nn.Conv2d                dec.0.conv2              1 1 64 65 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(3,3) out_channels=128 padding=same padding_mode=zeros stride=(1,1) @bias=(128)f32 @weight=(128,128,3,3)f32 #64=(1,128,16,16)f32 #65=(1,128,16,16)f32
+nn.ReLU                  pnnx_unique_6            1 1 65 66 #65=(1,128,16,16)f32 #66=(1,128,16,16)f32
+nn.Conv2d                dec.0.conv3              1 1 66 67 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(3,3) out_channels=128 padding=same padding_mode=zeros stride=(1,1) @bias=(128)f32 @weight=(128,128,3,3)f32 #66=(1,128,16,16)f32 #67=(1,128,16,16)f32
+nn.ReLU                  pnnx_unique_7            1 1 67 68 #67=(1,128,16,16)f32 #68=(1,128,16,16)f32
+pnnx.Expression          pnnx_expr_13             2 1 68 58 69 expr=add(@0,@1) #68=(1,128,16,16)f32 #58=(1,128,16,16)f32 #69=(1,128,16,16)f32
+nn.ConvTranspose2d       upsamplers.1             1 1 69 70 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(2,2) out_channels=64 output_padding=(0,0) padding=(0,0) stride=(2,2) @bias=(64)f32 @weight=(128,64,2,2)f32 #69=(1,128,16,16)f32 #70=(1,64,32,32)f32
+torch.cat                torch.cat_16             2 1 70 24 71 dim=1 #70=(1,64,32,32)f32 #24=(1,64,32,32)f32 #71=(1,128,32,32)f32
+nn.Linear                dec.1.temb_to_ch         1 1 12 72 bias=True in_features=30 out_features=64 @bias=(64)f32 @weight=(64,30)f32 #12=(1,30)f32 #72=(1,64)f32
+nn.Conv2d                dec.1.conv1              1 1 71 73 bias=True dilation=(1,1) groups=1 in_channels=128 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,128,3,3)f32 #71=(1,128,32,32)f32 #73=(1,64,32,32)f32
+nn.ReLU                  dec.1.act                1 1 73 74 #73=(1,64,32,32)f32 #74=(1,64,32,32)f32
+Tensor.reshape           torch.unsqueeze_28       1 1 72 75 shape=(1,64,1,1) $input=72 #72=(1,64)f32 #75=(1,64,1,1)f32
+pnnx.Expression          pnnx_expr_2              2 1 74 75 76 expr=add(@0,@1) #74=(1,64,32,32)f32 #75=(1,64,1,1)f32 #76=(1,64,32,32)f32
+nn.Conv2d                dec.1.conv2              1 1 76 77 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,64,3,3)f32 #76=(1,64,32,32)f32 #77=(1,64,32,32)f32
+nn.ReLU                  pnnx_unique_8            1 1 77 78 #77=(1,64,32,32)f32 #78=(1,64,32,32)f32
+nn.Conv2d                dec.1.conv3              1 1 78 79 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(3,3) out_channels=64 padding=same padding_mode=zeros stride=(1,1) @bias=(64)f32 @weight=(64,64,3,3)f32 #78=(1,64,32,32)f32 #79=(1,64,32,32)f32
+nn.ReLU                  pnnx_unique_9            1 1 79 80 #79=(1,64,32,32)f32 #80=(1,64,32,32)f32
+pnnx.Expression          pnnx_expr_0              2 1 80 70 81 expr=add(@0,@1) #80=(1,64,32,32)f32 #70=(1,64,32,32)f32 #81=(1,64,32,32)f32
+nn.Conv2d                to_image                 1 1 81 82 bias=True dilation=(1,1) groups=1 in_channels=64 kernel_size=(1,1) out_channels=3 padding=same padding_mode=zeros stride=(1,1) @bias=(3)f32 @weight=(3,64,1,1)f32 #81=(1,64,32,32)f32 #82=(1,3,32,32)f32
+pnnx.Output              pnnx_output_0            1 0 82 #82=(1,3,32,32)f32
