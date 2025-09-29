@@ -2,13 +2,14 @@
 set -euo pipefail
 
 # Minimal Vulkan inference runner using NCNN binary
-# Usage: ./infer_vulkan.sh [num_samples] [out_base]
+# Usage: ./infer_vulkan.sh [num_samples] [out_base] [steps]
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
 
 NUM_SAMPLES="${1:-1}"
 OUT_BASE="${2:-outputs/output_vulkan}"
+STEPS_ARG="${3:-}"
 
 BIN="$ROOT_DIR/cpp_vulkan/build/pixart_vulkan"
 PARAM="$ROOT_DIR/models/unet.param"
@@ -25,7 +26,11 @@ fi
 
 mkdir -p "$(dirname "$OUT_BASE")"
 
-CMD="\"$BIN\" \"$PARAM\" \"$BINW\" $NUM_SAMPLES \"$OUT_BASE\""
+if [[ -n "$STEPS_ARG" ]]; then
+  CMD="\"$BIN\" \"$PARAM\" \"$BINW\" $NUM_SAMPLES \"$OUT_BASE\" $STEPS_ARG"
+else
+  CMD="\"$BIN\" \"$PARAM\" \"$BINW\" $NUM_SAMPLES \"$OUT_BASE\""
+fi
 
 echo "Running $NUM_SAMPLES sample(s) on Vulkan..."
 if [[ -x /usr/bin/time ]]; then

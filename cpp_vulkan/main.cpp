@@ -13,7 +13,7 @@
 static constexpr int ART_SIZE = 32;
 static constexpr int NUM_CHANNELS = 3;
 static constexpr int STEPS = 500;
-static constexpr int ACTUAL_STEPS = 490;
+static int ACTUAL_STEPS = 490;
 // Simple no-op custom layer to handle leftover framework ops like Tensor.to
 struct NoopLayer : public ncnn::Layer {
 	NoopLayer() { one_blob_only = true; support_inplace = false; }
@@ -51,6 +51,7 @@ static std::vector<float> compute_alpha_t()
 static ncnn::Mat run_unet(ncnn::Net& net, const ncnn::Mat& x, const ncnn::Mat& t)
 {
 	ncnn::Extractor ex = net.create_extractor();
+	ex.set_light_mode(true);
 
 	auto try_input = [&](const std::vector<const char*>& candidates, const ncnn::Mat& m) -> int {
 		for (const char* name : candidates)
@@ -158,6 +159,11 @@ int main(int argc, char** argv)
 	const char* bin_path = argv[2];
 	const int num_samples = std::atoi(argv[3]);
 	const std::string out_base = argv[4];
+    if (argc >= 6)
+    {
+        int steps = std::atoi(argv[5]);
+        if (steps > 0 && steps <= STEPS) ACTUAL_STEPS = steps;
+    }
 
 	if (ncnn::get_gpu_count() == 0)
 	{
@@ -167,87 +173,97 @@ int main(int argc, char** argv)
 
 	ncnn::create_gpu_instance();
 
-	ncnn::Net net;
-	net.opt.use_vulkan_compute = 1;
-	net.opt.use_fp16_storage = 1;
-	net.opt.use_fp16_arithmetic = 0; // stability
+    {
+        ncnn::Net net;
+        net.opt.use_vulkan_compute = 1;
+        net.opt.use_fp16_storage = 1;
+        net.opt.use_fp16_arithmetic = 1; // enable fp16 math for speed
+        net.opt.use_shader_pack8 = 1;
+        net.opt.use_image_storage = 1;
 
-	// Register potential leftover ops as no-ops before parsing params
-	const char* noop_ops[] = {
-		"Tensor.to",
-		"Tensor.to_11",
-		"Tensor.to_12",
-		"Tensor.to_13",
-		"aten::to",
-		"to"
-	};
-	for (const char* name : noop_ops)
-	{
-		net.register_custom_layer(name, NoopLayer_creator);
-	}
-	std::cout << "Registered Tensor.to no-op handlers" << std::endl;
+        // Register potential leftover ops as no-ops before parsing params
+        const char* noop_ops[] = {
+            "Tensor.to",
+            "Tensor.to_11",
+            "Tensor.to_12",
+            "Tensor.to_13",
+            "aten::to",
+            "to"
+        };
+        for (const char* name : noop_ops)
+        {
+            net.register_custom_layer(name, NoopLayer_creator);
+        }
+        std::cout << "Registered Tensor.to no-op handlers" << std::endl;
 
-	if (net.load_param(param_path)) { std::cerr << "Failed to load param" << std::endl; return -1; }
-	if (net.load_model(bin_path)) { std::cerr << "Failed to load bin" << std::endl; return -1; }
+        if (net.load_param(param_path)) { std::cerr << "Failed to load param" << std::endl; return -1; }
+        if (net.load_model(bin_path)) { std::cerr << "Failed to load bin" << std::endl; return -1; }
 
-	std::vector<float> alpha_t = compute_alpha_t();
+        std::vector<float> alpha_t = compute_alpha_t();
 
-	auto total_start = std::chrono::high_resolution_clock::now();
+        auto total_start = std::chrono::high_resolution_clock::now();
 
-	for (int s = 0; s < num_samples; ++s)
-	{
-		// Initialize with random normal
-		ncnn::Mat h(ART_SIZE, ART_SIZE, NUM_CHANNELS);
-		{
-			std::mt19937 rng(42 + s);
-			std::normal_distribution<float> dist(0.f, 1.f);
-			for (size_t i = 0; i < h.total(); ++i) ((float*)h.data)[i] = dist(rng);
-		}
+        for (int s = 0; s < num_samples; ++s)
+        {
+            // Initialize with random normal
+            ncnn::Mat h(ART_SIZE, ART_SIZE, NUM_CHANNELS);
+            {
+                std::mt19937 rng(42 + s);
+                std::normal_distribution<float> dist(0.f, 1.f);
+                for (size_t i = 0; i < h.total(); ++i) ((float*)h.data)[i] = dist(rng);
+            }
 
-		auto t0 = std::chrono::high_resolution_clock::now();
-		h = sample_from(net, h, ACTUAL_STEPS, alpha_t, /*noise_mul=*/7.5f);
-		auto t1 = std::chrono::high_resolution_clock::now();
-		auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-		std::cout << "Sample " << (s+1) << "/" << num_samples << ": " << ms << " ms" << std::endl;
+            auto t0 = std::chrono::high_resolution_clock::now();
+            h = sample_from(net, h, ACTUAL_STEPS, alpha_t, /*noise_mul=*/7.5f);
+            auto t1 = std::chrono::high_resolution_clock::now();
+            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+            std::cout << "Sample " << (s+1) << "/" << num_samples << ": " << ms << " ms" << std::endl;
 
-		if (s == 0)
-		{
-			// Clamp and save first sample to PPM
-			for (size_t i = 0; i < h.total(); ++i)
-			{
-				float v = ((float*)h.data)[i];
-				v = std::max(0.f, std::min(1.f, v));
-				((float*)h.data)[i] = v;
-			}
+            if (s == 0)
+            {
+                // Map from [-1,1] -> [0,1]
+                for (size_t i = 0; i < h.total(); ++i)
+                {
+                    float v = ((float*)h.data)[i];
+                    ((float*)h.data)[i] = 0.5f * (v + 1.0f);
+                }
+                // Clamp and save first sample to PPM
+                for (size_t i = 0; i < h.total(); ++i)
+                {
+                    float v = ((float*)h.data)[i];
+                    v = std::max(0.f, std::min(1.f, v));
+                    ((float*)h.data)[i] = v;
+                }
 
-			std::string ppm_path = out_base + ".ppm";
-			std::ofstream ofs(ppm_path, std::ios::binary);
-			ofs << "P6\n" << ART_SIZE << " " << ART_SIZE << "\n255\n";
-			std::vector<unsigned char> rgb(ART_SIZE * ART_SIZE * 3);
-			for (int y = 0; y < ART_SIZE; ++y)
-			{
-				for (int x = 0; x < ART_SIZE; ++x)
-				{
-					for (int c = 0; c < 3; ++c)
-					{
-						float v = h.channel(c).row(y)[x];
-						int u8 = (int)std::round(v * 255.f);
-						rgb[(y * ART_SIZE + x) * 3 + c] = (unsigned char)std::max(0, std::min(255, u8));
-					}
-				}
-			}
-			ofs.write((const char*)rgb.data(), rgb.size());
-			ofs.close();
-			std::cout << "Saved " << ppm_path << std::endl;
-		}
-	}
+                std::string ppm_path = out_base + ".ppm";
+                std::ofstream ofs(ppm_path, std::ios::binary);
+                ofs << "P6\n" << ART_SIZE << " " << ART_SIZE << "\n255\n";
+                std::vector<unsigned char> rgb(ART_SIZE * ART_SIZE * 3);
+                for (int y = 0; y < ART_SIZE; ++y)
+                {
+                    for (int x = 0; x < ART_SIZE; ++x)
+                    {
+                        for (int c = 0; c < 3; ++c)
+                        {
+                            float v = h.channel(c).row(y)[x];
+                            int u8 = (int)std::round(v * 255.f);
+                            rgb[(y * ART_SIZE + x) * 3 + c] = (unsigned char)std::max(0, std::min(255, u8));
+                        }
+                    }
+                }
+                ofs.write((const char*)rgb.data(), rgb.size());
+                ofs.close();
+                std::cout << "Saved " << ppm_path << std::endl;
+            }
+        }
 
-	auto total_end = std::chrono::high_resolution_clock::now();
-	auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start).count();
-	std::cout << "Total: " << total_ms << " ms (" << (total_ms / (double)num_samples) << " ms per sample)" << std::endl;
+        auto total_end = std::chrono::high_resolution_clock::now();
+        auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(total_end - total_start).count();
+        std::cout << "Total: " << total_ms << " ms (" << (total_ms / (double)num_samples) << " ms per sample)" << std::endl;
+    }
 
-	ncnn::destroy_gpu_instance();
-	return 0;
+    ncnn::destroy_gpu_instance();
+    return 0;
 }
 
 
