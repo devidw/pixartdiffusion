@@ -16,4 +16,10 @@ ART_SIZE = 32
 STEPS = 500
 ACTUAL_STEPS = 490
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+    # Apple Silicon / macOS GPU via Metal Performance Shaders
+    device = torch.device('mps')
+else:
+    device = torch.device('cpu')

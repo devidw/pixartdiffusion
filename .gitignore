@@ -1,6 +1,37 @@
+.DS_STORE
+/abc
+/outputs
+
 build/*
 */__pycache__/*
 __pycache__/*
 pixartdiffusion.egg-info
 data/
 .idea/
+
+# C++/CMake (cpp)
+cpp/build/
+cpp/**/CMakeFiles/
+cpp/**/CMakeCache.txt
+cpp/**/cmake_install.cmake
+cpp/**/Makefile
+cpp/**/install_manifest.txt
+cpp/**/compile_commands.json
+
+# C/C++ compiled artifacts
+cpp/**/*.o
+cpp/**/*.obj
+cpp/**/*.a
+cpp/**/*.so
+cpp/**/*.dylib
+cpp/**/*.dll
+cpp/**/*.pdb
+cpp/**/*.lib
+cpp/**/*.exp
+cpp/**/*.ilk
+cpp/**/*.d
+
+# Compiled binaries
+cpp/**/*.exe
+cpp/**/*.out
+cpp/**/pixart_cpu
