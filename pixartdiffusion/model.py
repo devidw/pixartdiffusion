@@ -147,8 +147,8 @@ class UNet(nn.Module):
     def forward(self, x, t):
         assert x.shape[0] == t.shape[0]
 
-        # Create timestamp embeddings on the same device as input
-        temb = get_timestamp_embedding(t).to(x.device)
+        # Create timestamp embeddings; already on same device as t
+        temb = get_timestamp_embedding(t)
 
         N_enc = len(self.enc)
         N_dec = len(self.dec)
