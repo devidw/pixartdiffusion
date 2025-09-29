@@ -178,8 +178,6 @@ int main(int argc, char** argv)
         net.opt.use_vulkan_compute = 1;
         net.opt.use_fp16_storage = 1;
         net.opt.use_fp16_arithmetic = 1; // enable fp16 math for speed
-        net.opt.use_shader_pack8 = 1;
-        net.opt.use_image_storage = 1;
 
         // Register potential leftover ops as no-ops before parsing params
         const char* noop_ops[] = {
