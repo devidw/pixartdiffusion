@@ -1,5 +1,6 @@
 #include <ncnn/net.h>
 #include <ncnn/gpu.h>
+#include <ncnn/layer.h>
 #include <chrono>
 #include <iostream>
 #include <random>
@@ -13,6 +14,17 @@ static constexpr int ART_SIZE = 32;
 static constexpr int NUM_CHANNELS = 3;
 static constexpr int STEPS = 500;
 static constexpr int ACTUAL_STEPS = 490;
+// Simple no-op custom layer to handle leftover framework ops like Tensor.to
+struct NoopLayer : public ncnn::Layer {
+	NoopLayer() { one_blob_only = true; support_inplace = false; }
+	virtual int forward(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, const ncnn::Option& /*opt*/) const {
+		top_blob = bottom_blob.clone();
+		return 0;
+	}
+};
+
+static ncnn::Layer* NoopLayer_creator() { return new NoopLayer(); }
+
 
 // Match Python beta schedule
 static inline float get_beta_scalar(int t)
@@ -124,6 +136,10 @@ int main(int argc, char** argv)
 	net.opt.use_vulkan_compute = 1;
 	net.opt.use_fp16_storage = 1;
 	net.opt.use_fp16_arithmetic = 0; // stability
+
+	// Register potential leftover ops as no-ops before parsing params
+	net.register_custom_layer("Tensor.to", NoopLayer_creator);
+	net.register_custom_layer("Tensor.to_11", NoopLayer_creator);
 
 	if (net.load_param(param_path)) { std::cerr << "Failed to load param" << std::endl; return -1; }
 	if (net.load_model(bin_path)) { std::cerr << "Failed to load bin" << std::endl; return -1; }
