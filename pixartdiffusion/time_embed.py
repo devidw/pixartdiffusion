@@ -12,14 +12,14 @@ def get_timestamp_embedding(timestamps):
     dev = timestamps.device
     dtype = torch.float
 
-    pe = torch.zeros(len(timestamps), TIME_DIM, device=dev, dtype=dtype)
+    # ONNX-friendly implementation without ScatterND assignment
     k2 = torch.arange(0, TIME_DIM // 2, dtype=dtype, device=dev)
-
     div_term = torch.exp(-k2 / TIME_DIM * math.log(D))
-
     ts = timestamps.unsqueeze(1).to(device=dev, dtype=dtype)
 
-    pe[:, 0::2] = torch.sin(ts * div_term)
-    pe[:, 1::2] = torch.cos(ts * div_term)
-    
+    s = torch.sin(ts * div_term)  # (N, TIME_DIM//2)
+    c = torch.cos(ts * div_term)  # (N, TIME_DIM//2)
+
+    # Interleave [s0,c0,s1,c1,...] via stack+reshape
+    pe = torch.stack((s, c), dim=-1).reshape(len(timestamps), TIME_DIM)
     return pe
