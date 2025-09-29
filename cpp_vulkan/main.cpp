@@ -51,11 +51,46 @@ static std::vector<float> compute_alpha_t()
 static ncnn::Mat run_unet(ncnn::Net& net, const ncnn::Mat& x, const ncnn::Mat& t)
 {
 	ncnn::Extractor ex = net.create_extractor();
-	ex.input("x", x);
-	ex.input("t", t);
+
+	auto try_input = [&](const std::vector<const char*>& candidates, const ncnn::Mat& m) -> int {
+		for (const char* name : candidates)
+		{
+			if (ex.input(name, m) == 0) return 0;
+		}
+		return -1;
+	};
+
+	auto try_extract = [&](const std::vector<const char*>& candidates, ncnn::Mat& m) -> int {
+		for (const char* name : candidates)
+		{
+			if (ex.extract(name, m) == 0) return 0;
+		}
+		return -1;
+	};
+
+	const std::vector<const char*> x_names = {"in0", "x", "input0", "input", "data"};
+	const std::vector<const char*> t_names = {"in1", "t", "input1", "time", "ts"};
+	const std::vector<const char*> out_names = {"out0", "out", "output0", "output"};
+
+	if (try_input(x_names, x) != 0)
+	{
+		std::cerr << "Failed to bind x input; tried names x/in0/input0/input/data" << std::endl;
+	}
+	if (try_input(t_names, t) != 0)
+	{
+		std::cerr << "Failed to bind t input; tried names t/in1/input1/time/ts" << std::endl;
+	}
 
 	ncnn::Mat out;
-	ex.extract("out", out);
+	if (try_extract(out_names, out) != 0)
+	{
+		std::cerr << "Failed to extract out; tried names out/out0/output0/output" << std::endl;
+	}
+	if (out.empty())
+	{
+		std::cerr << "Extractor returned empty output; aborting this step" << std::endl;
+		return x.clone();
+	}
 	return out;
 }
 
